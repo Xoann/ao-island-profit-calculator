@@ -40,7 +40,7 @@ export default function PlotCountInputs({ plotCounts, onChange }: Props) {
             <label className="text-[11px] uppercase tracking-wide text-amber-200/80">
               {city}
             </label>
-            ``
+
             <input
               type="number"
               min={0}
