@@ -11,6 +11,15 @@ export type ItemSaleData = {
   timestamp: string;
 };
 
+export type CityResult = {
+  crop: Crop;
+  profit: number;
+  estSellPrice: number;
+  estCropCount: number;
+  estSeedLoss: number;
+  seedCost: number;
+};
+
 export type Crop =
   | "T1_CARROT"
   | "T2_BEAN"

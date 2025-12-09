@@ -1,4 +1,3 @@
-import { bonusMap } from "@/utils/constants";
 import { City, Crop, ItemSaleData } from "./types";
 
 export const computeAveragePrice = (data: ItemSaleData[]): number => {
@@ -6,6 +5,25 @@ export const computeAveragePrice = (data: ItemSaleData[]): number => {
 };
 
 export const isBonus = (city: City, crop: Crop): boolean => {
+  const bonusMap: Record<City, Crop[]> = {
+    Lymhurst: ["T1_CARROT", "T8_PUMPKIN", "T4_BURDOCK"],
+    Bridgewatch: ["T2_BEAN", "T7_CORN", "T5_TEASEL"],
+    Martlock: ["T3_WHEAT", "T6_POTATO", "T6_FOXGLOVE"],
+    "Fort Sterling": ["T4_TURNIP", "T8_YARROW"],
+    Thetford: ["T5_CABBAGE", "T2_AGARIC", "T7_MULLEIN"],
+    Caerleon: ["T3_COMFREY", "T5_TEASEL", "T7_MULLEIN"],
+    Brecilien: [
+      "T1_CARROT",
+      "T2_BEAN",
+      "T3_WHEAT",
+      "T4_TURNIP",
+      "T5_CABBAGE",
+      "T6_POTATO",
+      "T7_CORN",
+      "T8_PUMPKIN",
+    ],
+  };
+
   return bonusMap[city]?.includes(crop) ?? false;
 };
 
@@ -57,7 +75,8 @@ export const computeEstProfit = (
   crop: Crop,
   city: City,
   salePrice: number,
-  plotCount: number
+  plotCount: number,
+  hasPremium: boolean
 ): number => {
   const seedPrice = getSeedPrice(crop);
   const seedYield = getSeedYield(crop);
@@ -68,5 +87,22 @@ export const computeEstProfit = (
   const seedCostPerSquare = (1 - seedYield) * seedPrice;
   const squareEstProfit = cropYieldPerSquare * salePrice - seedCostPerSquare;
   const plotEstProfit = squareEstProfit * 9;
-  return plotEstProfit * plotCount;
+  const totalEstProfit = plotEstProfit * plotCount;
+
+  // Taxes - 8% tax no premium, 4% tax premium, 2.5% setup fee
+  if (hasPremium) {
+    return totalEstProfit * (1 - 0.04 - 0.025);
+  }
+  return totalEstProfit * (1 - 0.08 - 0.025);
+};
+
+export const computeEstCropCount = (
+  crop: Crop,
+  city: City,
+  plotCount: number
+): number => {
+  const bonus = isBonus(city, crop) ? 1.1 : 1.0;
+  const cropYieldPerSquare = 9 * bonus;
+  const plotCropCount = cropYieldPerSquare * 9 * plotCount;
+  return Math.round(plotCropCount);
 };

@@ -1,14 +1,35 @@
 "use client";
 import { useEffect, useState } from "react";
-import { City, Crop, FarmingDataEntry, PlotCounts } from "@/utils/types";
-import { computeAveragePrice, computeEstProfit } from "@/utils/analyzers";
+import {
+  City,
+  Crop,
+  FarmingDataEntry,
+  PlotCounts,
+  CityResult,
+} from "@/utils/types";
+import {
+  computeAveragePrice,
+  computeEstCropCount,
+  computeEstProfit,
+  getSeedPrice,
+  getSeedYield,
+} from "@/utils/analyzers";
 import PlotCountInputs from "@/components/PlotCountInputs";
 import BestCropDisplay from "@/components/BestCropDisplay";
 
-type BestCropInfo = { crop: Crop; profit: number };
+const EMPTY_CITY_RESULTS: Record<City, CityResult[]> = {
+  Lymhurst: [],
+  Bridgewatch: [],
+  Martlock: [],
+  "Fort Sterling": [],
+  Thetford: [],
+  Caerleon: [],
+  Brecilien: [],
+};
 
 export default function Home() {
   const [farmingData, setFarmingData] = useState<FarmingDataEntry[]>([]);
+  const [hasPremium, setHasPremium] = useState<boolean>(false);
 
   const [plotCounts, setPlotCounts] = useState<PlotCounts>({
     Lymhurst: 16,
@@ -24,18 +45,8 @@ export default function Home() {
     setPlotCounts((prev) => ({ ...prev, [city]: value }));
   }
 
-  // 🔹 bestCrops now stores { crop, profit } per city
-  const [bestCrops, setBestCrops] = useState<
-    Record<City, BestCropInfo | undefined>
-  >({
-    Lymhurst: undefined,
-    Bridgewatch: undefined,
-    Martlock: undefined,
-    "Fort Sterling": undefined,
-    Thetford: undefined,
-    Caerleon: undefined,
-    Brecilien: undefined,
-  });
+  const [cityResults, setCityResults] =
+    useState<Record<City, CityResult[]>>(EMPTY_CITY_RESULTS);
 
   useEffect(() => {
     const fetchFarmingData = async () => {
@@ -55,47 +66,130 @@ export default function Home() {
     fetchFarmingData();
   }, []);
 
-  // 🔹 Compute best crop + profit per city
+  // Compute all crops + profit per city
   useEffect(() => {
-    const bestByCity: Record<City, BestCropInfo | undefined> = {
-      Lymhurst: undefined,
-      Bridgewatch: undefined,
-      Martlock: undefined,
-      "Fort Sterling": undefined,
-      Thetford: undefined,
-      Caerleon: undefined,
-      Brecilien: undefined,
+    const allByCity: Record<City, CityResult[]> = {
+      Lymhurst: [],
+      Bridgewatch: [],
+      Martlock: [],
+      "Fort Sterling": [],
+      Thetford: [],
+      Caerleon: [],
+      Brecilien: [],
     };
 
     for (const entry of farmingData) {
-      const { item_id, location, data } = entry; // item_id: Crop, location: City
+      const { item_id, location, data } = entry;
       const price = computeAveragePrice(data);
 
       const estProfit = computeEstProfit(
         item_id,
         location,
         price,
+        plotCounts[location],
+        hasPremium
+      );
+
+      const estCropCount = computeEstCropCount(
+        item_id,
+        location,
         plotCounts[location]
       );
 
-      const current = bestByCity[location];
+      const estSeedLoss =
+        9 * plotCounts[location] * (1 - getSeedYield(item_id));
 
-      if (!current || estProfit > current.profit) {
-        bestByCity[location] = {
-          crop: item_id,
-          profit: estProfit,
-        };
-      }
+      allByCity[location].push({
+        crop: item_id,
+        profit: estProfit,
+        estSellPrice: price,
+        estCropCount,
+        estSeedLoss,
+        seedCost: getSeedPrice(item_id),
+      });
     }
 
-    setBestCrops(bestByCity);
-  }, [farmingData, plotCounts]);
+    (Object.keys(allByCity) as City[]).forEach((city) => {
+      allByCity[city].sort((a, b) => b.profit - a.profit);
+    });
+
+    setCityResults(allByCity);
+  }, [farmingData, plotCounts, hasPremium]);
 
   return (
-    <div className="flex min-h-screen flex-col gap-6 items-center justify-center bg-zinc-50 font-sans dark:bg-black p-6">
-      <PlotCountInputs plotCounts={plotCounts} onChange={updatePlotCount} />
+    <div className="flex min-h-screen flex-col items-center bg-zinc-50 dark:bg-black p-6">
+      <div className="w-full max-w-5xl space-y-8">
+        {/* Title card + premium toggle */}
+        <div
+          className="
+            rounded-xl border border-amber-900/70 
+            bg-slate-950/80 shadow-[0_0_28px_rgba(0,0,0,0.7)]
+            px-6 py-5 relative overflow-hidden
+          "
+        >
+          {/* Accent bar */}
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-orange-700 via-amber-400 to-orange-700" />
 
-      <BestCropDisplay results={bestCrops} />
+          <div className="relative flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="text-center sm:text-left">
+              <h1 className="text-2xl sm:text-3xl font-bold text-amber-300 tracking-wide mb-1">
+                Albion Farming Profit Calculator
+              </h1>
+
+              <p className="text-sm text-amber-200/80 tracking-wide">
+                See the best crop to farm in each city based on market data
+              </p>
+            </div>
+
+            {/* Premium toggle */}
+            <button
+              type="button"
+              onClick={() => setHasPremium((prev) => !prev)}
+              className={`
+                self-center sm:self-auto
+                inline-flex items-center gap-2
+                rounded-full border px-3 py-1.5 text-xs
+                uppercase tracking-[0.16em]
+                shadow-[0_0_14px_rgba(0,0,0,0.7)]
+                transition
+                ${
+                  hasPremium
+                    ? "border-emerald-400/80 bg-emerald-500/15 text-emerald-200"
+                    : "border-amber-900/80 bg-slate-950/90 text-amber-200/80 hover:border-amber-400/80"
+                }
+              `}
+            >
+              <span>Premium</span>
+              <div
+                className={`
+                  flex items-center h-4 w-9 rounded-full px-0.5
+                  transition-colors
+                  ${hasPremium ? "bg-emerald-400/80" : "bg-slate-600"}
+                `}
+              >
+                <div
+                  className={`
+                    h-3 w-3 rounded-full bg-slate-950 shadow
+                    transform transition-transform
+                    ${hasPremium ? "translate-x-5" : "translate-x-px"}
+                  `}
+                />
+              </div>
+              <span className="hidden sm:inline text-[10px] normal-case tracking-normal text-slate-300/80">
+                {hasPremium
+                  ? "Using 4% tax + 2.5% fee"
+                  : "Using 8% tax + 2.5% fee"}
+              </span>
+            </button>
+          </div>
+        </div>
+
+        {/* Plot configuration */}
+        <PlotCountInputs plotCounts={plotCounts} onChange={updatePlotCount} />
+
+        {/* Best crop cards + detail panel */}
+        <BestCropDisplay allCityData={cityResults} />
+      </div>
     </div>
   );
 }
