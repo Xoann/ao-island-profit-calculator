@@ -79,13 +79,13 @@ export default function BestCropDisplay({ allCityData }: Props) {
               For each crop in a city, profit is estimated with:
             </p>
             <p className="font-mono text-[10px] leading-snug mb-2 text-amber-100">
-              Profit = ( [ 9 × bonus × cropPrice − (1 − seedYield) × seedPrice ]
-              × 9 × plotCount ) × (1 − tax − setupFee)
+              Profit = ( [ avgCropYeild × bonus × cropPrice − (1 − seedYield) ×
+              seedPrice ] × 9 × plotCount ) × (1 − tax − setupFee)
             </p>
             <ul className="list-disc list-inside space-y-0.5">
               <li>
-                <span className="font-medium">9</span> = average harvest per
-                plot.
+                <span className="font-medium">avgCropYield</span> = 9 crops per
+                square with premium account (4.5 without).
               </li>
               <li>
                 <span className="font-medium">bonus</span> = city farming bonus
@@ -158,7 +158,12 @@ export default function BestCropDisplay({ allCityData }: Props) {
                   <span className="text-xs uppercase tracking-[0.18em] text-slate-400">
                     Profit
                   </span>
-                  <span className="font-medium text-emerald-300">
+                  <span
+                    className={
+                      "font-medium " +
+                      (best.profit >= 0 ? "text-emerald-300" : "text-red-400")
+                    }
+                  >
                     {getSilver(best.profit)}{" "}
                     <span className="text-xs text-amber-200/80">silver</span>
                   </span>
@@ -192,7 +197,12 @@ export default function BestCropDisplay({ allCityData }: Props) {
             Sum of best crop per city
           </p>
 
-          <p className="text-lg sm:text-2xl text-emerald-300 font-semibold">
+          <p
+            className={
+              "text-lg sm:text-2xl font-semibold " +
+              (totalProfit >= 0 ? "text-emerald-300" : "text-red-400")
+            }
+          >
             {getSilver(totalProfit)}{" "}
             <span className="text-sm text-amber-200/80">silver</span>
           </p>

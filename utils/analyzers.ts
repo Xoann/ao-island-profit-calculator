@@ -81,9 +81,10 @@ export const computeEstProfit = (
   const seedPrice = getSeedPrice(crop);
   const seedYield = getSeedYield(crop);
   const bonus = isBonus(city, crop) ? 1.1 : 1.0;
+  const cropYield = hasPremium ? 9 : 4.5;
 
   // Compute estimated profit per plot
-  const cropYieldPerSquare = 9 * bonus;
+  const cropYieldPerSquare = cropYield * bonus;
   const seedCostPerSquare = (1 - seedYield) * seedPrice;
   const squareEstProfit = cropYieldPerSquare * salePrice - seedCostPerSquare;
   const plotEstProfit = squareEstProfit * 9;

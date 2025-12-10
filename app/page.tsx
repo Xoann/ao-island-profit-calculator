@@ -29,7 +29,7 @@ const EMPTY_CITY_RESULTS: Record<City, CityResult[]> = {
 
 export default function Home() {
   const [farmingData, setFarmingData] = useState<FarmingDataEntry[]>([]);
-  const [hasPremium, setHasPremium] = useState<boolean>(false);
+  const [hasPremium, setHasPremium] = useState<boolean>(true);
 
   const [plotCounts, setPlotCounts] = useState<PlotCounts>({
     Lymhurst: 16,
